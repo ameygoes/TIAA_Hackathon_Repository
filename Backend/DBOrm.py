@@ -31,12 +31,19 @@ class User(BaseModel_for_Tables):
     workex = BooleanField()
     monthly_burn_rate = IntegerField()
     transactionId = IntegerField()
+    username = CharField(max_length=25)
+    password = CharField(max_length=25)
+
 
 class Learning(BaseModel_for_Tables):
     link = CharField(max_length=500)
     content_type = BooleanField()
     content = CharField(max_length=10000)
 
+class Friendship(BaseModel_for_Tables):
+    user1  = ForeignKeyField(User, backref='friends')
+    user2 = ForeignKeyField(User, backref='others_friend')
+    
 # Create FastAPI app
 app = FastAPI()
 

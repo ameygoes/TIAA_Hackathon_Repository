@@ -1,8 +1,13 @@
 peewee
 fastapi 
-uvicorn 
+uvicorn
 peewee
 pytest
 httpx
 faker
 names
+pyjwt
+pydantic
+PyJWT==2.6.0
+python-decouple==3.7
+passlib
