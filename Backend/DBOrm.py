@@ -27,6 +27,8 @@ class User(BaseModel):
     workex = BooleanField()
     monthly_burn_rate = IntegerField()
     transactionId = IntegerField()
+    username = CharField(max_length=25)
+    password = CharField(max_length=25)
     
     class Meta:
         database = db
@@ -68,7 +70,4 @@ def create_tables():
     db.close()
 
 if __name__ == '__main__':
-    # create_tables()
-
-
-
+    create_tables()
