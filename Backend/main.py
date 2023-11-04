@@ -3,6 +3,7 @@
 
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from DBOrm import app as db_app, createTables 
 from pydantic import BaseModel
 from playhouse.shortcuts import model_to_dict
 import peewee
@@ -96,10 +97,14 @@ async def get_leaderboard(jwt_payload: dict = Depends(jwt_bearer)):
 
     return user_friends
 
+app.mount("/db", db_app)
+
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
 
+createTables()
 if __name__ == "__main__":
+
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

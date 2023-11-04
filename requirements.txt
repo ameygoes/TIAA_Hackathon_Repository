@@ -1,6 +1,11 @@
 peewee
 fastapi 
-uvicorn 
+uvicorn
+peewee
+pytest
+httpx
+faker
+names
 pyjwt
 pydantic
 PyJWT==2.6.0

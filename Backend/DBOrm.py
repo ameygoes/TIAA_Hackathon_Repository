@@ -34,6 +34,7 @@ class User(BaseModel_for_Tables):
     username = CharField(max_length=25)
     password = CharField(max_length=25)
 
+
 class Learning(BaseModel_for_Tables):
     link = CharField(max_length=500)
     content_type = BooleanField()
