@@ -1,9 +1,8 @@
 from fastapi import FastAPI
 from peewee import Model, SqliteDatabase, CharField, IntegerField, BooleanField, ForeignKeyField
-from dbconfig import *
 
 # Define a SQLite database connection
-db = SqliteDatabase(DB_NAME)
+db = SqliteDatabase("tiaa.db")
 
 class BaseModel(Model):
     class Meta:
