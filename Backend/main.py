@@ -6,10 +6,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from playhouse.shortcuts import model_to_dict
 import peewee
-from DBOrm import User, db
+from DBOrm import User, db, Friendship
 from passlib.context import CryptContext
 from auth_handler import signJWT
 from typing import Optional
+from auth_bearer import JWTBearer
+from auth_handler import decodeJWT
+import json
 
 app = FastAPI()
 app.add_middleware(
@@ -18,7 +21,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
+jwt_bearer = JWTBearer()
 # Create a Pydantic model for the JWT token
 class Token(BaseModel):
     access_token: str
@@ -76,6 +79,22 @@ def login_user(user: UserLogin):
     
     # Create a JWT token
     return signJWT(user.username)
+
+# @app.get("/leaderboard", dependencies=[Depends(JWTBearer())], tags=['leaderboard'])
+# async def get_leaderboard():
+#     return "OK"
+
+@app.get("/leaderboard")
+# async def get_leaderboard():
+async def get_leaderboard(jwt_payload: dict = Depends(jwt_bearer)):
+    username = decodeJWT(jwt_payload)['username']
+
+    user = User.get(User.username == username)
+    friends_query = User.select(User).join(Friendship, on=(Friendship.user2 == User.id)).where(Friendship.user1 == user.id).order_by(user.karma_points) 
+    result = []
+    user_friends = [{"username":user.username, "karma": user.karma_points} for user in friends_query]
+
+    return user_friends
 
 @app.get("/")
 async def root():
