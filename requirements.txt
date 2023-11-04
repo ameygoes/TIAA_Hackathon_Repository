@@ -2,3 +2,7 @@ peewee
 fastapi 
 uvicorn 
 peewee
+pytest
+httpx
+faker
+names
