@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from peewee import Model, SqliteDatabase, CharField, IntegerField, BooleanField
+from peewee import Model, SqliteDatabase, CharField, IntegerField, BooleanField, ForeignKeyField
 from dbconfig import *
 
 # Define a SQLite database connection
@@ -38,6 +38,9 @@ class Learning(BaseModel):
     content_type = BooleanField()
     content = CharField(max_length=10000)
 
+class Friendship(BaseModel):
+    user1  = ForeignKeyField(User, backref='friends')
+    user2 = ForeignKeyField(User, backref='others_friend')
 
 def insert_record(table_class, **kwargs):
     db.connect()
@@ -66,8 +69,9 @@ def insert_record(table_class, **kwargs):
 
 def create_tables():
     db.connect()
-    db.create_tables([Transaction, User, Learning])
+    db.create_tables([Transaction, User, Learning, Friendship])
     db.close()
 
 if __name__ == '__main__':
+
     create_tables()
