@@ -1,7 +1,7 @@
 # create a starter fastapi app
 # run with uvicorn main:app --reload
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from playhouse.shortcuts import model_to_dict
