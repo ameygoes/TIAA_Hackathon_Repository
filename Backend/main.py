@@ -91,7 +91,7 @@ async def get_leaderboard(jwt_payload: dict = Depends(jwt_bearer)):
     username = decodeJWT(jwt_payload)['username']
 
     user = User.get(User.username == username)
-    friends_query = User.select(User).join(Friendship, on=(Friendship.user2 == User.id)).where(Friendship.user1 == user.id).order_by(user.karma_points) 
+    friends_query = User.select(User).join(Friendship, on=(Friendship.user2 == User.id)).where(Friendship.user1 == user.id).order_by(-User.karma_points) 
     result = []
     user_friends = [{"username":user.username, "karma": user.karma_points} for user in friends_query]
 
