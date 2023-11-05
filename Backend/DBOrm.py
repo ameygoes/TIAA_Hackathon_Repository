@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import Dict
+from typing import Dict, List 
 from peewee import Model, SqliteDatabase, CharField, IntegerField, BooleanField, fn, ForeignKeyField
 import random
 import names
@@ -47,6 +47,10 @@ class Friendship(BaseModel_for_Tables):
 # Create FastAPI app
 app = FastAPI()
 
+
+# =========================================================================
+# ============================ USER CRUD ==================================
+# =========================================================================
 # Pydantic model for creating User records
 class CreateUser(BaseModel):
     name: str
@@ -64,9 +68,7 @@ class CreateUser(BaseModel):
     username: str
     password: str
 
-# =========================================================================
-# ============================ USER CRUD ==================================
-# =========================================================================
+
 @app.post("/users/", response_model=CreateUser)
 async def create_user(user_data: CreateUser):
     db.connect()
@@ -333,6 +335,102 @@ async def delete_learning(learning_id: int):
     finally:
         db.close()
 
+# =========================================================================
+# ============================ FRIENDSHIPS CRUD =============================
+# =========================================================================
+
+# Pydantic model for creating Learning records
+class CreateFriendship(BaseModel):
+    user1: int
+    user2: int 
+
+@app.get("/users/{user_id}/friends", response_model=List[CreateUser])
+async def get_friends(user_id: int):
+    db.connect()
+    try:
+        # Find all friendships where the user is either user1 or user2
+        friendships = Friendship.select().where((Friendship.user1 == user_id) | (Friendship.user2 == user_id))
+        
+        friend_ids = []
+        for friendship in friendships:
+            if friendship.user1 == user_id:
+                friend_ids.append(friendship.user2)
+            else:
+                friend_ids.append(friendship.user1)
+        
+        # Retrieve user data for the friend_ids
+        friends = User.select().where(User.id << friend_ids)
+        
+        return list(friends)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to fetch friends")
+    finally:
+        db.close()
+
+# Endpoint to create a Friendship record
+@app.post("/friendships/", response_model=CreateFriendship)
+async def create_friendship(friendship_data: CreateFriendship):
+    db.connect()
+    try:
+        friendship = Friendship.create(
+            user1=friendship_data.user1,
+            user2=friendship_data.user2
+        )
+        db.commit()
+        return friendship
+    except Exception as e:
+        db.rollback()
+        raise e
+    finally:
+        db.close()
+
+# Endpoint to retrieve a Friendship record by ID
+@app.get("/friendships/{friendship_id}", response_model=CreateFriendship)
+async def get_friendship(friendship_id: int):
+    db.connect()
+    try:
+        friendship = Friendship.get(Friendship.id == friendship_id)
+        return friendship
+    except Friendship.DoesNotExist:
+        raise HTTPException(status_code=404, detail="Friendship record not found")
+    finally:
+        db.close()
+
+# Endpoint to update a Friendship record by ID
+@app.put("/friendships/{friendship_id}", response_model=CreateFriendship)
+async def update_friendship(friendship_id: int, updated_data: CreateFriendship):
+    db.connect()
+    try:
+        friendship = Friendship.get(Friendship.id == friendship_id)
+        friendship.user1 = updated_data.user1
+        friendship.user2 = updated_data.user2
+        friendship.save()
+        return friendship
+    except Friendship.DoesNotExist:
+        raise HTTPException(status_code=404, detail="Friendship record not found")
+    except Exception as e:
+        db.rollback()
+        raise e
+    finally:
+        db.close()
+
+# Endpoint to delete a Friendship record by ID
+@app.delete("/friendships/{friendship_id}", response_model=CreateFriendship)
+async def delete_friendship(friendship_id: int):
+    db.connect()
+    try:
+        friendship = Friendship.get(Friendship.id == friendship_id)
+        friendship.delete_instance()
+        db.commit()
+        return friendship
+    except Friendship.DoesNotExist:
+        raise HTTPException(status_code=404, detail="Friendship record not found")
+    except Exception as e:
+        db.rollback()
+        raise e
+    finally:
+        db.close()
 
 # =========================================================================
 # ======================== INSERT FAKE DATA : USER ========================
@@ -359,10 +457,37 @@ def generate_random_user():
     }
     return user_data
 
+# Function to generate random user data
+def generate_transactions():
+    return {
+        "userId": random.randint(1, 100),
+        "transactionCategory": random.choice(["Expense", "Income", "Groceries", "Entertainment", "Healthcare", "Transportation"]),
+        "transactionAmount": round(random.uniform(1.0, 1000.0), 2),
+        }
+
+
+# Function to generate random user data
+def generate_learnings():
+    fake = Faker()
+    learning_data = {
+        "link": fake.url(),
+        "content_type": random.choice(["True", "False"]),
+        "content": fake.text(),
+    }
+    return learning_data
+
+# Function to generate random user data
+def generate_friendships():
+    friendship_data = {
+        "user1": random.randint(1,20),
+        "user2": random.randint(1,20)
+    }
+    return friendship_data
+
+
 # Endpoint to insert a random user
 @app.post("/insert_random_user/{number_of_users}", response_model=str)
 async def insert_random_user(number_of_users: int):
-    print("here================")
     db.connect()
 
     for _ in range(number_of_users):
@@ -378,10 +503,67 @@ async def insert_random_user(number_of_users: int):
             db.close()
     return f"{number_of_users} users Added Succesfully."
 
+# Endpoint to insert a random user
+@app.post("/insert_random_transaction/{number_of_transactions}", response_model=str)
+async def insert_random_transaction(number_of_transactions: int):
+    db.connect()
+
+    for _ in range(number_of_transactions):
+        transaction_data = generate_transactions()
+        try:
+            user = Transaction.create(**transaction_data)
+            db.commit()
+            continue
+        
+        except Exception as e:
+            raise HTTPException(status_code=500, detail="Internal Server Error")
+        finally:
+            db.close()
+    return f"{number_of_transactions} transactions Added Succesfully."
+
+
+# Endpoint to insert a random user
+@app.post("/insert_random_learning/{number_of_learnings}", response_model=str)
+async def insert_random_learning(number_of_learnings: int):
+    db.connect()
+
+    for _ in range(number_of_learnings):
+        learning_data = generate_learnings()
+        try:
+            user = Learning.create(**learning_data)
+            db.commit()
+            continue
+        
+        except Exception as e:
+            raise HTTPException(status_code=500, detail="Internal Server Error")
+        finally:
+            db.close()
+    return f"{number_of_learnings} learnings Added Succesfully."
+
+
+# Endpoint to insert a random user
+@app.post("/insert_random_friendships/{number_of_friendships}", response_model=str)
+async def insert_random_friendships(number_of_friendships: int):
+    db.connect()
+
+    for _ in range(number_of_friendships):
+        friendship_data = generate_friendships()
+        try:
+            user = Friendship.create(**friendship_data)
+            db.commit()
+            continue
+        
+        except Exception as e:
+            print(e)
+            raise HTTPException(status_code=500, detail="Internal Server Error")
+        finally:
+            db.close()
+    return f"{number_of_friendships} friendships Added Succesfully."
+
 def createTables():
     print("Creating Tables...")
     with db:
-        db.create_tables([User, Transaction, Learning], safe=True)
+        db.create_tables([User, Transaction, Learning, Friendship], safe=True)
     print("Tables Created!!!")
 
 if __name__ == '__main__':
