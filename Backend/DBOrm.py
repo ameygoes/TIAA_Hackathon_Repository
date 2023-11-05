@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Dict
-from peewee import Model, SqliteDatabase, CharField, IntegerField, BooleanField, fn
+from peewee import Model, SqliteDatabase, CharField, IntegerField, BooleanField, fn, ForeignKeyField
 import random
 import names
 from faker import Faker
@@ -61,14 +61,14 @@ class CreateUser(BaseModel):
     workex: bool
     monthly_burn_rate: int
     transactionId: int
-
+    username: str
+    password: str
 
 # =========================================================================
 # ============================ USER CRUD ==================================
 # =========================================================================
 @app.post("/users/", response_model=CreateUser)
 async def create_user(user_data: CreateUser):
-    print(user_data)
     db.connect()
     try:
         # Create a new User record with the data
@@ -84,7 +84,9 @@ async def create_user(user_data: CreateUser):
                 debt_in_K=user_data.debt_in_K,
                 workex=user_data.workex,
                 monthly_burn_rate=user_data.monthly_burn_rate,
-                transactionId=user_data.transactionId
+                transactionId=user_data.transactionId,
+                username=user_data.username,
+                password=user_data.password
             )
         db.commit()
         return user
@@ -95,16 +97,31 @@ async def create_user(user_data: CreateUser):
     finally:
         db.close()
 
-@app.get("/users/{user_id}", response_model=CreateUser)
+@app.get("/users/{user_id}")
 async def read_user(user_id: int):
     try:
         with db:
             user = User.get(User.id == user_id)
-            return user
+            print(user)
+            print(type(user))
+            return { "name":user.name,
+                "karma_points":user.karma_points,
+                "retirement_age":user.retirement_age,
+                "retirement_amt_per_year":user.retirement_amt_per_year,
+                "birth_year":user.birth_year,
+                "current_saved_money":user.current_saved_money,
+                "current_profession":user.current_profession,
+                "current_education":user.current_education,
+                "debt_in_K":user.debt_in_K,
+                "workex":user.workex,
+                "monthly_burn_rate":user.monthly_burn_rate,
+                "transactionId":user.transactionId,
+                "username":user.username,
+                "password":user.password}
     except User.DoesNotExist:
         raise HTTPException(status_code=404, detail="User not found")
 
-@app.put("/users/{user_id}", response_model=CreateUser)
+@app.put("/users/{user_id}")
 async def update_user(user_id: int, user_data: CreateUser):
     try:
         with db:
@@ -337,13 +354,15 @@ def generate_random_user():
         "workex": random.choice([True, False]),
         "monthly_burn_rate": random.randint(1000, 5000),
         "transactionId": random.randint(1, 100),
+        "username": f"username_{random.randint(0, 1000000)}",
+        "password": "password"
     }
     return user_data
 
 # Endpoint to insert a random user
 @app.post("/insert_random_user/{number_of_users}", response_model=str)
 async def insert_random_user(number_of_users: int):
-    
+    print("here================")
     db.connect()
 
     for _ in range(number_of_users):
